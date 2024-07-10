@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+#script to setup and configure an nginx web server on Ubuntu
+# set -x
+
+echo -e "Starting update and initial setup...\n"
+
+# Function to install a package if not already installed
+function install_package() {
+    # Check if the command exists
+    command -v "$1" &> /dev/null
+
+    if [ $? -ne 0 ]; then
+        # If the command is not found, install the package
+        echo -e "Installing package: $1\n"
+        sudo apt-get update -y -qq
+        sudo apt-get install -y "$1" -qq
+        echo -e "\n"
+    else
+        echo -e "$1 is already installed.\n"
+    fi
+}
+
+# Install nginx if not already installed
+install_package nginx
+
+echo -e "\nConfiguring system settings...\n"
+
+# Allow HTTP traffic through the firewall for nginx
+sudo ufw allow 'Nginx HTTP'
+
+# Ensure /var/www exists and set permissions
+if [ ! -d "/var/www" ]; then
+    sudo mkdir -p /var/www
+fi
+sudo chown -R "$USER":"$USER" /var/www
+sudo chmod -R 755 /var/www
+
+# Create the necessary directories if they do not exist
+for directory in /var/www/{html,error}; do
+    if [ ! -d "$directory" ]; then
+        mkdir -p "$directory"
+    fi
+done
+
+# Create a basic index.html for the default site
+echo "Hello World!" > /var/www/html/index.html
+
+# Create a custom 404 error page
+echo "Ceci n'est pas une page" > /var/www/html/error_404.html
+
+# Backup the default nginx configuration
+sudo cp /etc/nginx/sites-enabled/default /etc/nginx/sites-enabled/default.backup
+
+# New nginx server configuration
+nginx_config=\
+"server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    root /var/www/html;
+    index index.html index.htm;
+    server_name _;
+    add_header X-Served-By \$hostname;
+    
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+    
+    if (\$request_filename ~ redirect_me) {
+        rewrite ^ https://th3-gr00t.tk/ permanent;
+    }
+    
+    error_page 404 /error_404.html;
+    location = /error_404.html {
+        internal;
+    }
+}"
+
+# Apply the new configuration
+echo "$nginx_config" | sudo tee /etc/nginx/sites-enabled/default > /dev/null
+
+# Restart nginx to apply changes
+if pgrep -x "nginx" > /dev/null; then
+    sudo service nginx restart
+else
+    sudo service nginx start
+fi
+
+echo -e "Nginx setup and configuration complete."
+
