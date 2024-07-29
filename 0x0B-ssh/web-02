@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#This script is used to authenticate the remote server
+
+ssh -i ~/.ssh/school ubuntu@34.203.77.208
+
