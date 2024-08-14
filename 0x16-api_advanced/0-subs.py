@@ -1,36 +1,30 @@
 #!/usr/bin/python3
-"""
-Script that queries subscribers on a given Reddit subreddit.
-"""
+"""This script queries the Reddit API and returns the number of total
+subscribers for a given subreddit."""
 
 import requests
 
+
 def number_of_subscribers(subreddit):
-    """Return the total number of subscribers on a given subreddit."""
-    url = f"https://www.reddit.com/r/{subreddit}/about.json"
-    headers = {"User-Agent": "my-app v1.0"}
-    try:
-        response = requests.get(url, headers=headers, allow_redirects=False)
-        
-        # Debugging output
-        print(f"Status Code: {response.status_code}")
-        print(f"Response URL: {response.url}")
+    """
+    Retrieves the number of subscribers for a given subreddit.
 
-        if response.status_code == 200:
-            try:
-                data = response.json().get("data")
-                if data:
-                    return data.get("subscribers", 0)
-            except ValueError:
-                print("Error decoding JSON.")
-        elif response.status_code == 302:
-            # Redirect status code (likely for invalid subreddit)
-            print("Redirect detected. Likely invalid subreddit.")
-        else:
-            print(f"Unexpected status code: {response.status_code}")
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Request exception: {e}")
+    Args:
+        subreddit (str): The name of the subreddit.
 
-    return 0
+    Returns:
+        int: The number of subscribers for the subreddit. Returns 0 if the
+        request fails or the subreddit does not exist.
+    """
+    response = requests.get(
+        "https://www.reddit.com/r/{}/about.json".format(subreddit),
+        allow_redirects=False,
+        headers={"user-agent": "nabuntu_bot-01"},
+        timeout=60,
+    )
 
+    return (
+        response.json()["data"]["subscribers"]
+        if response.status_code == 200
+        else 0
+    )
